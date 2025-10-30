@@ -1,10 +1,13 @@
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  DOCKER_IMAGE_NAME: "tweetle-discovery-service"
+  DOCKER_TAG: "latest"
 
 stages:
   - build
   - test
   - sonarqube-check
+  - docker-build
   - deploy
 
 build:
@@ -27,21 +30,39 @@ sonarqube-check:
   script:
     - ./gradlew test jacocoTestReport sonar
 
-docker-deploy:
-  stage: deploy
+docker-build:
+  stage: docker-build
+  image: docker:27.0.3
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
   script:
-    # Stop and remove any existing containers
-    - docker compose down || true
+    # Build Docker image
+    - docker build -t $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$DOCKER_TAG .
 
-    # Ensure the Docker network exists (optional, if already defined in compose)
-    - docker network inspect tweetle-network || docker network create tweetle-network
+    # Optionally tag with commit SHA for traceability
+    - docker tag $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$DOCKER_TAG $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
 
-    # Build and start all services in detached mode
-    - docker compose up -d --build
-
-    # Optionally check container status
-    - docker ps
+    # Push both tags
+    - docker push $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$DOCKER_TAG
+    - docker push $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
   only:
     - main
   dependencies:
     - build
+
+docker-deploy:
+  stage: deploy
+  script:
+    - docker compose down || true
+    - docker network inspect tweetle-network || docker network create tweetle-network
+    - docker compose pull
+    - docker compose up -d
+    - docker ps
+  only:
+    - main
+  dependencies:
+    - docker-build
