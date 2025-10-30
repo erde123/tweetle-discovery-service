@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  eureka-server:
+    build: .
+    container_name: eureka-server
+    image: tweetle-discovery-service:latest
+    restart: always
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_APPLICATION_NAME: tweetle-discovery-service
+      SERVER_PORT: 8761
+      EUREKA_INSTANCE_HOSTNAME: eureka-server
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "true"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+    networks:
+      - tweetle-network
+
+networks:
+  tweetle-network:
+    driver: bridge
