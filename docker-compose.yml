@@ -2,8 +2,9 @@ version: '3.8'
 
 services:
   eureka-server:
-    image: tweetle-discovery-service:latest
+    build: .
     container_name: eureka-server
+    image: tweetle-discovery-service:latest
     restart: always
     ports:
       - "8761:8761"
