@@ -1,7 +1,5 @@
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-  DOCKER_IMAGE_NAME: "tweetle-discovery-service"
-  DOCKER_TAG: "latest"
 
 stages:
   - build
@@ -29,29 +27,6 @@ sonarqube-check:
   stage: sonarqube-check
   script:
     - ./gradlew test jacocoTestReport sonar
-
-docker-build:
-  stage: docker-build
-  image: docker:27.0.3
-  services:
-    - docker:dind
-  variables:
-    DOCKER_DRIVER: overlay2
-  script:
-    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-    # Build Docker image
-    - docker build -t $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$DOCKER_TAG .
-
-    # Optionally tag with commit SHA for traceability
-    - docker tag $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$DOCKER_TAG $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
-
-    # Push both tags
-    - docker push $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$DOCKER_TAG
-    - docker push $DOCKERHUB_USERNAME/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
-  only:
-    - main
-  dependencies:
-    - build
 
 docker-deploy:
   stage: deploy
