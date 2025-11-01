@@ -20,4 +20,4 @@ services:
 
 networks:
   tweetle-network:
-    driver: bridge
+    external: true
